@@ -1,6 +1,6 @@
 # .gitignore file
-.github/
 target/
 *.class
 .idea/
 .bsp/
+to-do.txt
