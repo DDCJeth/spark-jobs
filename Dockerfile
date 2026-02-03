@@ -3,6 +3,7 @@ FROM sbtscala/scala-sbt:graalvm-ce-22.3.3-b1-java17_1.12.1_3.3.7 AS builder
 
 COPY . /app
 WORKDIR /app
+ENV SBT_OPTS="-Xms2G -Xmx4G -XX:+UseG1GC -XX:MaxMetaspaceSize=1G"
 RUN sbt clean assembly
 
 # Stage 2: Spark 4.0 Runtime
