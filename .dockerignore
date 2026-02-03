@@ -1,0 +1,8 @@
+# .dockerignore
+target/
+project/target/
+project/project/
+.git
+.idea
+*.sh
+.github/

@@ -1,0 +1,42 @@
+apiVersion: "sparkoperator.k8s.io/v1beta2"
+kind: SparkApplication
+metadata:
+  name: iceberg-ingestion
+  namespace: spark-jobs
+spec:
+  type: Scala
+  mode: cluster
+  image: "ghcr.io/your-user/spark-iceberg:latest"
+  mainClass: "LoadToIceberg"
+  mainApplicationFile: "local:///opt/spark/apps/app.jar"
+  arguments:
+    - "s3://datalake/raw/data"           # inputPath
+    - "cdr.data_logs"                    # targetTable
+    - "s3://datalake/schemas/data.json"  # schemaPath
+    - "timestamp"                        # partitionCol
+  sparkVersion: "4.0.1"
+
+  sparkConf:
+    "spark.sql.extensions": "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions"
+    "spark.sql.catalog.local": "org.apache.iceberg.spark.SparkCatalog"
+    "spark.sql.catalog.local.type": "hadoop"
+    "spark.sql.catalog.local.warehouse": "s3://datalake/warehouse"
+    
+    # Use the AWS Bundle's FileIO for better performance
+    "spark.sql.catalog.local.io-impl": "org.apache.iceberg.aws.s3.S3FileIO"
+    
+    # MinIO / S3 Configuration using AWS SDK v2 (required by the bundle)
+    "spark.hadoop.fs.s3.endpoint": "http://minio-service.storage:9000"
+    "spark.hadoop.fs.s3.access.key": "minio-root-user"
+    "spark.hadoop.fs.s3.secret.key": "minio-root-password"
+    "spark.hadoop.fs.s3.path.style.access": "true"
+    "spark.hadoop.fs.s3.aws.credentials.provider": "software.amazon.awssdk.auth.credentials.StaticCredentialsProvider"
+
+  driver:
+    cores: 1
+    memory: "1g"
+    serviceAccount: spark-operator-spark
+  executor:
+    cores: 1
+    instances: 1
+    memory: "1g"
