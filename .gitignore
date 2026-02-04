@@ -8,3 +8,4 @@ jars/
 *.log
 *.tmp
 .DS_Store
+cmd.sh

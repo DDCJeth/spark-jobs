@@ -6,7 +6,7 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.internal.Logging
 import scala.io.Source
 
-object LoadVoiceGoldTables extends Logging {
+object VoiceGoldTables extends Logging {
 
   def main(args: Array[String]): Unit = {
 

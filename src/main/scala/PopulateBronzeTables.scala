@@ -6,7 +6,7 @@ import org.apache.spark.internal.Logging
 
 import scala.io.Source
 
-object LoadToBronzeTables extends Logging {
+object PopulateBronzeTables extends Logging {
 
   def main(args: Array[String]): Unit = {
     // Expected args: <inputPath> <tableName> <schemaPath> <partitionCol>
@@ -15,7 +15,7 @@ object LoadToBronzeTables extends Logging {
     //                3. tableName (e.g. cdr.voice)
 
     if (args.length < 3) {
-      println("Usage: LoadToBronzeTables <inputPath> <logType> <tableName>")
+      println("Usage: PopulateBronzeTables <inputPath> <logType> <tableName>")
       sys.exit(1)
     }
 
