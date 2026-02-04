@@ -48,7 +48,7 @@ object SmsSilverTable extends Logging {
       col("sms_date"),
       col("sms_hour"),
       col("sms_id"),
-      col("sms_msisdn"),
+      col("sender_msisdn"),
       col("receiver_msisdn"),
       col("sms_type"),
       col("message_length"),

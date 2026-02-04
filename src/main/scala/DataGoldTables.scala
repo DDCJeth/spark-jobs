@@ -71,7 +71,7 @@ object DataGoldTables extends Logging {
 
 
 
-    val dataTowerKpis = dataDf.groupBy("data_date", "data_hour", "cell_id")
+    val dataTowerKpis = df.groupBy("data_date", "data_hour", "cell_id")
       .agg(
         count("session_id").as("total_sessions"),
         count(when(col("session_end_reason") === "NORMAL", 1)).as("total_active_sessions"),
