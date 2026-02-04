@@ -52,6 +52,11 @@ object LoadToBronzeTables extends Logging {
       .schema(customSchema)
       .csv(inputPath)
 
+    
+    logInfo(s" Showing sample data ")
+    
+    df.show(5)
+
     logInfo(s" CSV data read successfully with schema applied")
 
     logInfo("Enriching data with ingestion_date column")
@@ -63,6 +68,8 @@ object LoadToBronzeTables extends Logging {
     val namespace = targetTable.split("\\.")(0)
 
     spark.sql(s"CREATE NAMESPACE IF NOT EXISTS $namespace")
+
+    logInfo(s"Namespace $namespace ensured")
 
     enrichedDf.writeTo(targetTable).append()
 

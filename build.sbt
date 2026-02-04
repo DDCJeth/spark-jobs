@@ -20,3 +20,6 @@ assembly / assemblyMergeStrategy := {
   case "reference.conf" => MergeStrategy.concat
   case _ => MergeStrategy.first
 }
+
+
+//  "software.amazon.awssdk" % "bundle" % "2.23.19"
