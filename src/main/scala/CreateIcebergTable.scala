@@ -31,6 +31,7 @@ object CreateIcebergTable extends Logging {
       
       val schema = DataType.fromJson(schemaJson).asInstanceOf[StructType]
 
+      logInfo(s"Schema parsed successfully")
       // 2. Add the ingestion_date column (since it's not in your raw schema files)
       val finalSchema = schema.add("ingestion_date", "date")
 

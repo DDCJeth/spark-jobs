@@ -4,3 +4,7 @@ target/
 .idea/
 .bsp/
 to-do.txt
+jars/
+*.log
+*.tmp
+.DS_Store

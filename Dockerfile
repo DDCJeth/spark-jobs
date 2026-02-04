@@ -12,4 +12,6 @@ FROM apache/spark:4.0.1-scala2.13-java17-r-ubuntu
 USER root
 RUN mkdir -p /opt/spark/apps
 COPY --from=builder /app/target/scala-2.13/app.jar /opt/spark/apps/app.jar
+COPY ./jars/hadoop-aws-3.4.0.jar /opt/spark/jars/
+RUN chown -R spark:spark /opt/spark/apps /opt/spark
 USER spark

@@ -3,9 +3,10 @@ import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.types.DataType
 import org.apache.spark.sql.SaveMode
 import org.apache.spark.sql.functions._
+import org.apache.spark.internal.Logging
 import scala.io.Source
 
-object LoadVoiceGoldTables {
+object LoadVoiceGoldTables extends Logging {
 
   def main(args: Array[String]): Unit = {
 
@@ -15,20 +16,25 @@ object LoadVoiceGoldTables {
     val firstTargetTable     = "gold.voice_daily_global_kpis"
     val secondTargetTable    = "gold.voice_daily_tower_kpis"
 
+    // Log progress: creating Spark session
+    logInfo("Creating spark session ")
     val spark = SparkSession.builder()
       .appName(s"Populate Gold Voice Table for: $dateToProcess")
       .getOrCreate()
-
+    logInfo("Spark session created successfully ")
 
     // 0. Create Namespace if not exists
     val namespace = "gold"
+    // Log progress: creating namespace if needed
+    logInfo(s"Creating Namespace if not exists: $namespace")
     spark.sql(s"CREATE NAMESPACE IF NOT EXISTS $namespace")
-
+    logInfo(s"Namespace created or already exists: $namespace")
 
     // 1. Read bronze data for the specified date
+    // Log progress: reading input table for date
+    logInfo(s"Reading input table: $inputTable for ingestion_date: $dateToProcess")
     val voicedf: DataFrame = spark.table(inputTable)
       .filter(col("ingestion_date") === lit(dateToProcess))
-
 
     val voiceKpis = voicedf
       .groupBy("call_date")
@@ -53,11 +59,15 @@ object LoadVoiceGoldTables {
       )
 
     voiceKpis.show(5)
+    // Log progress: finished computing global KPIs
+    logInfo(s"Computed global voice KPIs for date: $dateToProcess")
 
     // Write to to Gold Table : voiceKpis
+    logInfo(s"Writing aggregated global KPIs to Iceberg table: $firstTargetTable")
     voiceKpis.write
       .mode(SaveMode.Append)
       .saveAsTable(firstTargetTable)
+    logInfo(s"Data successfully written to Iceberg table: $firstTargetTable")
 
 
     // Assuming 'voiceDf' is your DataFrame
@@ -82,13 +92,16 @@ object LoadVoiceGoldTables {
 
     // Show 
     voiceTowerKpis.show(5)
-
+    logInfo(s"Computed tower-level KPIs for date: $dateToProcess")
 
     //  Write to Tower Gold Iceberg Table
+    logInfo(s"Writing tower KPIs to Iceberg table: $secondTargetTable")
     voiceTowerKpis.write
       .mode(SaveMode.Append)
       .saveAsTable(secondTargetTable)
+    logInfo(s"Data successfully written to Iceberg table: $secondTargetTable")
 
+    logInfo("Stopping spark session")
     spark.stop()
   }
 }

@@ -3,9 +3,10 @@ import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.types.DataType
 import org.apache.spark.sql.SaveMode
 import org.apache.spark.sql.functions._
+import org.apache.spark.internal.Logging
 import scala.io.Source
 
-object LoadVoiceSilverTable {
+object LoadVoiceSilverTable extends Logging {
 
   def main(args: Array[String]): Unit = {
 
