@@ -14,42 +14,40 @@ object VoiceSilverTable extends Logging {
     val inputTable = args(1) // e.g., "bronze.voice"
     val targetTable     = args(2) // e.g., "silver.voice"
 
+    logInfo(s"Starting VoiceSilverTable job with dateToProcess=$dateToProcess, inputTable=$inputTable, targetTable=$targetTable")
 
     val spark = SparkSession.builder()
       .appName(s"Populate Silver Voice Table for: $dateToProcess")
       .getOrCreate()
 
+    logInfo("SparkSession created successfully")
 
     // 0. Create Namespace if not exists
     val namespace = "silver"
     spark.sql(s"CREATE NAMESPACE IF NOT EXISTS $namespace")
-
+    logInfo(s"Namespace '$namespace' ensured")
 
     // 1. Read bronze data for the specified date
+    logInfo(s"Reading data from table: $inputTable for date: $dateToProcess")
     val voicedf: DataFrame = spark.table(inputTable)
       .filter(col("ingestion_date") === lit(dateToProcess))
-
+    
+    val bronzeCount = voicedf.count()
+    logInfo(s"Read $bronzeCount records from bronze table")
 
     // 2. Perform transformations to derive new columns
+    logInfo("Applying transformations...")
     val resultDf = voicedf
-      // 1. Extract date from timestamp (equivalent to dt.date)
       .withColumn("call_date", to_date(col("timestamp")))
-      
-      // 2. Extract hour from timestamp (equivalent to dt.hour)
       .withColumn("call_hour", hour(col("timestamp")))
-      
-      // 3. Compute duration in minutes
-      // Note: We divide by 60.0 to ensure floating point division
       .withColumn("duration_minutes", col("duration_seconds") / 60.0)
-      
-      // 4. Derive call status (equivalent to np.where)
       .withColumn("call_status", 
         when(col("termination_reason").isin("NORMAL", "USER_TERMINATED"), "SUCCESS")
         .otherwise("FAILED")
       )
 
-    // View the result
     resultDf.show()
+    logInfo("Transformations completed")
 
     // Select columns to match target schema
     val finalDf = resultDf.select(
@@ -69,15 +67,21 @@ object VoiceSilverTable extends Logging {
       col("charging_amount")
     )
 
-
     // 3. Validation and Transformation
     val enrichedDf = finalDf.withColumn("ingestion_date", current_date())
     
+    val finalCount = enrichedDf.count()
+    logInfo(s"Final record count before write: $finalCount")
+    
     // 4. Write to Silver Iceberg Table
+    logInfo(s"Writing $finalCount records to table: $targetTable")
     enrichedDf.write
       .mode(SaveMode.Append)
       .saveAsTable(targetTable)
+    
+    logInfo(s"Successfully wrote records to $targetTable")
 
     spark.stop()
+    logInfo("Job completed successfully")
   }
 }

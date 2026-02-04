@@ -14,32 +14,29 @@ object SmsSilverTable extends Logging {
     val inputTable = args(1) // e.g., "bronze.sms"
     val targetTable     = args(2) // e.g., "silver.sms"
 
+    logInfo(s"Starting SMS Silver Table population for date: $dateToProcess")
+    logInfo(s"Input table: $inputTable, Target table: $targetTable")
 
     val spark = SparkSession.builder()
       .appName(s"Populate Silver SMS Table for: $dateToProcess")
       .getOrCreate()
 
-
     // 0. Create Namespace if not exists
     val namespace = "silver"
     spark.sql(s"CREATE NAMESPACE IF NOT EXISTS $namespace")
-
+    logInfo(s"Namespace '$namespace' created or already exists")
 
     // 1. Read bronze data for the specified date
     val df: DataFrame = spark.table(inputTable)
       .filter(col("ingestion_date") === lit(dateToProcess))
-
+    logInfo(s"Read ${df.count()} records from $inputTable for date $dateToProcess")
 
     // 2. Perform transformations to derive new columns
     val resultDf = df
-      // 1. Extract date from timestamp (equivalent to dt.date)
       .withColumn("sms_date", to_date(col("timestamp")))
-      
-      // 2. Extract hour from timestamp (equivalent to dt.hour)
       .withColumn("sms_hour", hour(col("timestamp")))
-            
+    logInfo("Applied date and hour transformations")
 
-    // View the result
     resultDf.show(5)
 
     // Select columns to match target schema
@@ -57,16 +54,19 @@ object SmsSilverTable extends Logging {
       col("region"),
       col("charging_amount")
     )
-
+    logInfo("Selected final columns")
 
     // 3. Validation and Transformation
     val enrichedDf = finalDf.withColumn("ingestion_date", current_date())
+    logInfo("Added ingestion_date column")
     
     // 4. Write to Silver Iceberg Table
     enrichedDf.write
       .mode(SaveMode.Append)
       .saveAsTable(targetTable)
+    logInfo(s"Successfully wrote ${enrichedDf.count()} records to $targetTable")
 
+    logInfo("SMS Silver Table population completed successfully")
     spark.stop()
   }
 }
