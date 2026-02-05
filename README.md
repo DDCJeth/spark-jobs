@@ -48,30 +48,44 @@ type=voice;./spark-submit \
 
 
 ./spark-submit \
+  --class VoiceSilverTable \
+  /home/jeth/Projects/spark-dev-repo/target/scala-2.13/app.jar \
+  "2026-02-05" \
+  bronze.voice \
+  silver.voice
+
+./spark-submit \
+  --class VoiceGoldTables \
+  /home/jeth/Projects/spark-dev-repo/target/scala-2.13/app.jar \
+  "2026-02-05" \
+  silver.voice
+
+
+./spark-submit \
   --class SmsSilverTable \
   /home/jeth/Projects/spark-dev-repo/target/scala-2.13/app.jar \
-  "2026-02-04" \
+  "2026-02-05" \
   bronze.sms \
   silver.sms
 
 ./spark-submit \
   --class SmsGoldTables \
   /home/jeth/Projects/spark-dev-repo/target/scala-2.13/app.jar \
-  "2026-02-04" \
+  "2026-02-05" \
   silver.sms
 
 
 ./spark-submit \
   --class DataSilverTable \
   /home/jeth/Projects/spark-dev-repo/target/scala-2.13/app.jar \
-  "2026-02-04" \
+  "2026-02-05" \
   bronze.data \
   silver.data
 
 ./spark-submit \
   --class DataGoldTables \
   /home/jeth/Projects/spark-dev-repo/target/scala-2.13/app.jar \
-  "2026-02-04" \
+  "2026-02-05" \
   silver.data
 
 
