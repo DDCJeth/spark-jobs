@@ -2,7 +2,7 @@ import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
 
-object VoiceSilverStream {
+object VoiceSilverStreamMinio {
   def main(args: Array[String]): Unit = {
 
     // Expected args: <kafkaHost> <bronzeTopic> <silverTopic> <checkpointLocation> 

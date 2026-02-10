@@ -8,10 +8,8 @@ val hadoopVersion = "3.4.0"
 
 libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-sql" % sparkVersion % "provided",
-  "org.apache.iceberg" %% "iceberg-spark-runtime-4.0" % icebergVersion,
   "org.apache.hadoop" % "hadoop-aws" % hadoopVersion % "provided",
-  "org.apache.iceberg" % "iceberg-aws-bundle" % icebergVersion,
-  "org.apache.spark" %% "spark-sql-kafka-0-10" % sparkVersion,
+   "org.apache.spark" %% "spark-sql-kafka-0-10" % sparkVersion,
 //  "org.apache.kafka" % "kafka-clients" % sparkVersion
 )
 

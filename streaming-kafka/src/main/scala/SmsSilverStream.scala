@@ -5,6 +5,22 @@ import org.apache.spark.sql.types._
 object SmsSilverStream {
   def main(args: Array[String]): Unit = {
 
+    // Expected args: <kafkaHost> <bronzeTopic> <silverTopic> <checkpointLocation> 
+    // Expected args: 1. kafkaHost (e.g. localhost:9092)
+    //                2. bronzeTopic (e.g. sms-bronze-cdr) 
+    //                3. silverTopic (e.g. sms-silver-cdr) )
+    //                4. checkpointLocation (e.g. /tmp/checkpoints/sms-silver-cdr or s3a://datalake/checkpoints/sms-silver-cdr)
+
+    if (args.length < 4) {
+      println("Usage: PopulateSilverTables <kafkaHost> <bronzeTopic> <silverTopic> <checkpointLocation>")    
+      sys.exit(1)
+    }
+
+    val kafkaHost      = args(0) // e.g. localhost:9092
+    val bronzeTopic    = args(1) // e.g. sms-bronze-cdr
+    val silverTopic      = args(2) // e.g. sms-silver-cdr
+    val checkpointLocation  = args(3) // e.g. /tmp/checkpoints/sms-silver-cdr or s3a://datalake/checkpoints/sms-silver-cdr
+
     val spark = SparkSession.builder()
       .appName("KafkaSmsTransformation")
       .getOrCreate()
@@ -30,8 +46,8 @@ object SmsSilverStream {
     // 2. Read from Kafka
     val kafkaRawDf = spark.readStream
       .format("kafka")
-      .option("kafka.bootstrap.servers", "localhost:9092")
-      .option("subscribe", "sms-bronze-cdr") // Input topic for SMS Bronze layer
+      .option("kafka.bootstrap.servers", kafkaHost)
+      .option("subscribe", bronzeTopic) // Input topic for SMS Bronze layer
       .option("startingOffsets", "latest")
       .load()
 
@@ -68,16 +84,16 @@ object SmsSilverStream {
     )
 
 
-    // 6. Write output into kafka topic named silver-voice-data
+    // 6. Write output into kafka topic named silver-sms-data
     val query = finalDf
       // Kafka requires a 'value' column. We serialize the entire row to JSON.
       // If you have a primary key, cast it to string as the 'key' (e.g., "CAST(id as STRING) as key")
       .selectExpr("to_json(struct(*)) AS value")
       .writeStream
       .format("kafka")
-      .option("kafka.bootstrap.servers", "localhost:9092") // Replace with your Kafka Broker
-      .option("topic", "sms-silver-cdr") // Output topic
-      .option("checkpointLocation", "/tmp/checkpoints/silver-sms-cdr") // Required for fault tolerance
+      .option("kafka.bootstrap.servers", kafkaHost) // Replace with your Kafka Broker
+      .option("topic", silverTopic) // Output topic
+      .option("checkpointLocation", checkpointLocation) // Required for fault tolerance
       .outputMode("append")
       .start()
 

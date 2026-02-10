@@ -5,6 +5,22 @@ import org.apache.spark.sql.types._
 object DataSilverStream {
   def main(args: Array[String]): Unit = {
 
+    // Expected args: <kafkaHost> <bronzeTopic> <silverTopic> <checkpointLocation> 
+    // Expected args: 1. kafkaHost (e.g. localhost:9092)
+    //                2. bronzeTopic (e.g. data-bronze-cdr) 
+    //                3. silverTopic (e.g. data-silver-cdr) )
+    //                4. checkpointLocation (e.g. /tmp/checkpoints/data-silver-cdr or s3a://datalake/checkpoints/data-silver-cdr)
+
+    if (args.length < 4) {
+      println("Usage: PopulateSilverTables <kafkaHost> <bronzeTopic> <silverTopic> <checkpointLocation>")    
+      sys.exit(1)
+    }
+
+    val kafkaHost      = args(0) // e.g. localhost:9092
+    val bronzeTopic    = args(1) // e.g. data-bronze-cdr
+    val silverTopic      = args(2) // e.g. data-silver-cdr
+    val checkpointLocation  = args(3) // e.g. /tmp/checkpoints/data-silver-cdr or s3a://datalake/checkpoints/data-silver-cdr
+
     val spark = SparkSession.builder()
       .appName("KafkaDataTransformation")
       .getOrCreate()
@@ -31,8 +47,8 @@ object DataSilverStream {
     // 2. Read from Kafka
     val kafkaRawDf = spark.readStream
       .format("kafka")
-      .option("kafka.bootstrap.servers", "localhost:9092")
-      .option("subscribe", "data-bronze-cdr") // Input topic for Bronze layer
+      .option("kafka.bootstrap.servers", kafkaHost)
+      .option("subscribe", bronzeTopic) // Input topic for Bronze layer
       .option("startingOffsets", "latest")
       .load()
 
@@ -77,8 +93,8 @@ object DataSilverStream {
       .selectExpr("to_json(struct(*)) AS value")
       .writeStream
       .format("kafka")
-      .option("kafka.bootstrap.servers", "localhost:9092") // Replace with your Kafka Broker
-      .option("topic", "data-silver-cdr") // Output topic
+      .option("kafka.bootstrap.servers", kafkaHost) // Replace with your Kafka Broker
+      .option("topic", silverTopic) // Output topic
       .option("checkpointLocation", "/tmp/checkpoints/silver-data-cdr") // Required for fault tolerance
       .outputMode("append")
       .start()

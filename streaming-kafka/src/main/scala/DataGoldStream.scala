@@ -6,6 +6,22 @@ import org.apache.spark.sql.streaming.OutputMode
 object DataGoldStream {
   def main(args: Array[String]): Unit = {
 
+    // Expected args: <kafkaHost> <bronzeTopic> <goldTopic> <checkpointLocation> 
+    // Expected args: 1. kafkaHost (e.g. localhost:9092)
+    //                2. silverTopic (e.g. data-bronze-cdr) 
+    //                3. goldTopic (e.g. data-gold-cdr) )
+    //                4. checkpointLocation (e.g. /tmp/checkpoints/data-gold-cdr or s3a://datalake/checkpoints/data-gold-cdr)
+
+    if (args.length < 4) {
+      println("Usage: PopulateGoldTables <kafkaHost> <silverTopic> <goldTopic> <checkpointLocation>")    
+      sys.exit(1)
+    }
+
+    val kafkaHost      = args(0) // e.g. localhost:9092
+    val silverTopic    = args(1) // e.g. data-bronze-cdr
+    val goldTopic      = args(2) // e.g. data-gold-cdr
+    val checkpointLocation  = args(3) // e.g. /tmp/checkpoints/data-gold-cdr or s3a://datalake/checkpoints/data-gold-cdr
+
     // 1. Initialize Spark
     val spark = SparkSession.builder()
       .appName("KafkaVoiceMultiKPIs")
@@ -35,8 +51,8 @@ object DataGoldStream {
     // 3. Read Source (Shared Input)
     val rawKafkaDf = spark.readStream
       .format("kafka")
-      .option("kafka.bootstrap.servers", "localhost:9092")
-      .option("subscribe", "data-silver-cdr") // Input topic for Silver layer
+      .option("kafka.bootstrap.servers", kafkaHost)
+      .option("subscribe", silverTopic) // Input topic for Silver layer
       .option("startingOffsets", "latest")
       .load()
 
@@ -83,8 +99,8 @@ object DataGoldStream {
       .writeStream
       .queryName("DailyKPIs")
       .format("kafka")
-      .option("kafka.bootstrap.servers", "localhost:9092")
-      .option("topic", "data-gold-cdr") // Topic 1
+      .option("kafka.bootstrap.servers", kafkaHost)
+      .option("topic", goldTopic) // Topic 1
       .option("checkpointLocation", "/tmp/checkpoints/data-daily-kpis")
       .outputMode(OutputMode.Update())
       .start()
@@ -127,9 +143,9 @@ object DataGoldStream {
       .writeStream
       .queryName("TowerKPIs")
       .format("kafka")
-      .option("kafka.bootstrap.servers", "localhost:9092")
-      .option("topic", "data-gold-tower-cdr") // Topic 2
-      .option("checkpointLocation", "/tmp/checkpoints/data-tower-kpis")
+      .option("kafka.bootstrap.servers", kafkaHost)
+      .option("topic", s"$goldTopic-tower") // Topic 2
+      .option("checkpointLocation", s"$checkpointLocation-tower")
       .outputMode(OutputMode.Update())
       .start()
 

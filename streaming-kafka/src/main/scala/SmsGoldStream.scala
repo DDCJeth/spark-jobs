@@ -6,6 +6,22 @@ import org.apache.spark.sql.streaming.OutputMode
 object SmsGoldStream {
   def main(args: Array[String]): Unit = {
 
+    // Expected args: <kafkaHost> <bronzeTopic> <goldTopic> <checkpointLocation> 
+    // Expected args: 1. kafkaHost (e.g. localhost:9092)
+    //                2. silverTopic (e.g. sms-bronze-cdr) 
+    //                3. goldTopic (e.g. sms-gold-cdr) )
+    //                4. checkpointLocation (e.g. /tmp/checkpoints/sms-gold-cdr or s3a://datalake/checkpoints/sms-gold-cdr)
+
+    if (args.length < 4) {
+      println("Usage: PopulateGoldTables <kafkaHost> <silverTopic> <goldTopic> <checkpointLocation>")    
+      sys.exit(1)
+    }
+
+    val kafkaHost      = args(0) // e.g. localhost:9092
+    val silverTopic    = args(1) // e.g. sms-bronze-cdr
+    val goldTopic      = args(2) // e.g. sms-gold-cdr
+    val checkpointLocation  = args(3) // e.g. /tmp/checkpoints/sms-gold-cdr or s3a://datalake/checkpoints/sms-gold-cdr
+
     // 1. Initialize Spark
     val spark = SparkSession.builder()
       .appName("KafkaSmsMultiKPIs")
@@ -33,8 +49,8 @@ object SmsGoldStream {
     // 3. Read Source (Shared Input)
     val rawKafkaDf = spark.readStream
       .format("kafka")
-      .option("kafka.bootstrap.servers", "localhost:9092")
-      .option("subscribe", "sms-silver-cdr") // sms input topic for Silver layer
+      .option("kafka.bootstrap.servers", kafkaHost)
+      .option("subscribe", silverTopic) // sms input topic for Silver layer
       .option("startingOffsets", "latest")
       .load()
 
@@ -65,9 +81,9 @@ object SmsGoldStream {
       .writeStream
       .queryName("DailyKPIs")
       .format("kafka")
-      .option("kafka.bootstrap.servers", "localhost:9092")
-      .option("topic", "sms-gold-cdr") // Topic 1
-      .option("checkpointLocation", "/tmp/checkpoints/sms-daily-kpis")
+      .option("kafka.bootstrap.servers", kafkaHost)
+      .option("topic", goldTopic) // Topic 1
+      .option("checkpointLocation", checkpointLocation)
       .outputMode(OutputMode.Update())
       .start()
 
@@ -94,9 +110,9 @@ object SmsGoldStream {
       .writeStream
       .queryName("TowerKPIs")
       .format("kafka")
-      .option("kafka.bootstrap.servers", "localhost:9092")
-      .option("topic", "sms-gold-tower-cdr") // Topic 2
-      .option("checkpointLocation", "/tmp/checkpoints/sms-tower-kpis")
+      .option("kafka.bootstrap.servers", kafkaHost)
+      .option("topic", s"$goldTopic-tower") // Topic 2
+      .option("checkpointLocation", s"$checkpointLocation-tower")
       .outputMode(OutputMode.Update())
       .start()
 
