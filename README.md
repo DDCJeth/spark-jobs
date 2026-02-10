@@ -5,7 +5,7 @@
 
 - Create jar
 ```bash
-# At the root of the repo
+# At the root of the folder of build.sbt
 export SBT_OPTS="-Xms2G -Xmx4G -XX:+UseG1GC"
 sbt clean assembly
 ```

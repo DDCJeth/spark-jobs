@@ -1,10 +1,11 @@
 # .gitignore file
-target/
+.github/
+*target/
 *.class
 .idea/
 .bsp/
 to-do.txt
-jars/
+*jars/
 *.log
 *.tmp
 .DS_Store
