@@ -15,5 +15,6 @@ COPY --from=builder /app/target/scala-2.13/app.jar /opt/spark/apps/app.jar
 COPY ./jars/hadoop-aws-3.4.0.jar /opt/spark/jars/
 COPY ./jars/aws-java-sdk-bundle-1.12.262.jar /opt/spark/jars/
 COPY ./jars/bundle-2.23.19.jar /opt/spark/jars/
+COPY ./jars/postgresql-42.7.4.jar /opt/spark/jars/
 RUN chown -R spark:spark /opt/spark/apps /opt/spark
 USER spark

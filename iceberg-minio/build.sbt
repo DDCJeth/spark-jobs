@@ -10,7 +10,8 @@ libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-sql" % sparkVersion % "provided",
   "org.apache.iceberg" %% "iceberg-spark-runtime-4.0" % icebergVersion,
   "org.apache.hadoop" % "hadoop-aws" % hadoopVersion % "provided",
-  "org.apache.iceberg" % "iceberg-aws-bundle" % icebergVersion
+  "org.apache.iceberg" % "iceberg-aws-bundle" % icebergVersion,
+  "org.postgresql" % "postgresql" % "42.7.4"
 )
 
 assembly / assemblyJarName := "app.jar"
