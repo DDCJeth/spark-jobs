@@ -52,7 +52,19 @@ object VoiceGoldTables extends Logging {
         
         // Equivalent to: (g['call_status'] == 'FAILED').sum()
         sum(when(col("call_status") === "FAILED", 1).otherwise(0)).as("total_call_failed"),
-        
+
+        // count of unique caller_msisdn
+        countDistinct("caller_msisdn").as("unique_calling_subscribers"),
+
+        // count of unique callee_msisdn
+        countDistinct("callee_msisdn").as("unique_receiving_subscribers"),
+
+        // (g['termination_reason'] == 'NO_ANSWER').sum()
+        sum(when(col("termination_reason") === "NO_ANSWER", 1).otherwise(0)).as("total_no_answer"),
+
+        // (g['termination_reason'] == 'USER_TERMINATED').sum()
+        sum(when(col("termination_reason") === "USER_TERMINATED", 1).otherwise(0)).as("total_user_terminated"),        
+
         // Other Sums
         sum("charging_amount").as("total_revenue"),
         sum("duration_minutes").as("total_duration_of_minutes")
@@ -82,12 +94,25 @@ object VoiceGoldTables extends Logging {
         
         // (g['call_status'] == 'SUCCESS').sum()
         sum(when(col("call_status") === "SUCCESS", 1).otherwise(0)).as("total_call_success"),
-        
+
         // (g['call_status'] == 'FAILED').sum()
         sum(when(col("call_status") === "FAILED", 1).otherwise(0)).as("total_call_failed"),
-        
+
+        // count of unique caller_msisdn
+        countDistinct("caller_msisdn").as("unique_calling_subscribers"),
+
+        // count of unique callee_msisdn
+        countDistinct("callee_msisdn").as("unique_receiving_subscribers"),
+
+        // (g['termination_reason'] == 'NO_ANSWER').sum()
+        sum(when(col("termination_reason") === "NO_ANSWER", 1).otherwise(0)).as("total_no_answer"),
+
+        // (g['termination_reason'] == 'USER_TERMINATED').sum()
+        sum(when(col("termination_reason") === "USER_TERMINATED", 1).otherwise(0)).as("total_user_terminated"),
+
         // g['charging_amount'].sum()
         sum("charging_amount").as("total_revenue")
+
       )
 
     // Show 

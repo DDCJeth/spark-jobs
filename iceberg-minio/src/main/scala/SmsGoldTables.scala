@@ -48,8 +48,13 @@ object SmsGoldTables extends Logging {
       count(when(col("delivery_status") === "DELIVERED", col("sms_id"))).as("total_delivered_sms"),
       count(when(col("delivery_status") === "FAILED", col("sms_id"))).as("total_failed_sms"),
       sum("charging_amount").as("total_revenue"),
-      countDistinct("sender_msisdn").as("total_subscribers_sending_sms"),
-      countDistinct("receiver_msisdn").as("total_subscribers_receiving_sms")
+      count(when(col("delivery_status") === "FAILED", col("sms_id"))).as("total_failed_sms"),
+      countDistinct("sender_msisdn").as("unique_sending_subscribers"),
+      countDistinct("receiver_msisdn").as("unique_receiving_subscribers"),
+
+      // (g['delivery_status'] == 'PENDING').sum()
+      sum(when(col("delivery_status") === "PENDING", 1).otherwise(0)).as("total_pending_sms")
+
     )
 
     smsKpis.show(5)
@@ -72,8 +77,12 @@ object SmsGoldTables extends Logging {
         count(when(col("delivery_status") === "DELIVERED", 1)).as("total_delivered_sms"),
         count(when(col("delivery_status") === "FAILED", 1)).as("total_failed_sms"),
         sum("charging_amount").as("total_revenue"),
-        countDistinct("sender_msisdn").as("total_subscribers_sending_sms"),
-        countDistinct("receiver_msisdn").as("total_subscribers_receiving_sms")
+        
+        countDistinct("sender_msisdn").as("unique_sending_subscribers"),
+        countDistinct("receiver_msisdn").as("unique_receiving_subscribers"),
+        // (g['delivery_status'] == 'PENDING').sum()
+        sum(when(col("delivery_status") === "PENDING", 1).otherwise(0)).as("total_pending_sms")
+
       )
 
     smsTowerKpis.show(5)

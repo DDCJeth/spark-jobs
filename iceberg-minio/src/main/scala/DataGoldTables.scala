@@ -43,8 +43,22 @@ object DataGoldTables extends Logging {
       .agg(
         count("session_id").as("total_sessions"),
         count(when(col("session_end_reason") === "NORMAL", col("session_id"))).as("total_active_sessions"),
+
+        // count of unique caller_msisdn
+        countDistinct("msisdn").as("unique_subscribers"),
+
+        // (g['session_end_reason'] == 'NETWORK_ERROR').sum()
+        sum(when(col("session_end_reason") === "NETWORK_ERROR", 1).otherwise(0)).as("total_network_error"),
+
+        // (g['session_end_reason'] == 'USER_TERMINATED').sum()
+        sum(when(col("session_end_reason") === "USER_TERMINATED", 1).otherwise(0)).as("total_user_terminated"),
+
+        // (g['session_end_reason'] == 'QUOTA_EXCEEDED').sum()
+        sum(when(col("session_end_reason") === "QUOTA_EXCEEDED", 1).otherwise(0)).as("total_quota_exceeded"),
+
         avg("session_duration_seconds").as("average_session_duration_sec"),
         avg(when(col("session_end_reason") === "USER_TERMINATED", col("session_duration_seconds"))).as("average_session_duration_terminated_sec"),
+
         sum("bytes_uploaded").as("total_bytes_uploaded"),
         sum("bytes_downloaded").as("total_bytes_downloaded"),
         sum("charging_amount").as("total_revenue")
@@ -77,7 +91,18 @@ object DataGoldTables extends Logging {
         count(when(col("session_end_reason") === "NORMAL", 1)).as("total_active_sessions"),
         sum("bytes_uploaded").as("total_bytes_uploaded"),
         sum("bytes_downloaded").as("total_bytes_downloaded"),
-        sum("charging_amount").as("total_revenue")
+        sum("charging_amount").as("total_revenue"),
+        // count of unique caller_msisdn
+        countDistinct("msisdn").as("unique_subscribers"),
+
+        // (g['session_end_reason'] == 'NETWORK_ERROR').sum()
+        sum(when(col("session_end_reason") === "NETWORK_ERROR", 1).otherwise(0)).as("total_network_error"),
+
+        // (g['session_end_reason'] == 'USER_TERMINATED').sum()
+        sum(when(col("session_end_reason") === "USER_TERMINATED", 1).otherwise(0)).as("total_user_terminated"),
+
+        // (g['session_end_reason'] == 'QUOTA_EXCEEDED').sum()
+        sum(when(col("session_end_reason") === "QUOTA_EXCEEDED", 1).otherwise(0)).as("total_quota_exceeded")
       )
       // Derive total bytes and volume in GB
       .withColumn("total_bytes", col("total_bytes_uploaded") + col("total_bytes_downloaded"))
