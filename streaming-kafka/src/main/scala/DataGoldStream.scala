@@ -71,10 +71,14 @@ object DataGoldStream {
       // 1. Basic Counts
       count("session_id").as("total_sessions"),
 
-      // 2. Conditional Count (Active Sessions)
-      // We count '1' only when the condition is met.
-      count(when(col("session_end_reason") === "NORMAL", 1)).as("total_active_sessions"),
-
+      approx_count_distinct(col("msisdn")).as("unique_subscribers"),
+      
+       // 2. Conditional Counts
+       // We count '1' only when the condition is met.
+       count(when(col("session_end_reason") === "NORMAL", 1)).as("total_active_sessions"),
+       count(when(col("session_end_reason") === "NETWORK_ERROR", 1)).as("total_network_error"),
+       count(when(col("session_end_reason") === "USER_TERMINATED", 1)).as("total_user_terminated"),
+       count(when(col("session_end_reason") === "QUOTA_EXCEEDED", 1)).as("total_quota_exceeded"),
       // 3. Sums (using coalesce to treat nulls as 0 to avoid breaking the sum)
       sum(coalesce(col("bytes_uploaded"), lit(0))).as("total_bytes_uploaded"),
       sum(coalesce(col("bytes_downloaded"), lit(0))).as("total_bytes_downloaded"),
@@ -113,9 +117,14 @@ object DataGoldStream {
       // 1. Basic Counts
       count("session_id").as("total_sessions"),
 
-      // 2. Conditional Count (Active Sessions)
-      // We count '1' only when the condition is met.
-      count(when(col("session_end_reason") === "NORMAL", 1)).as("total_active_sessions"),
+      approx_count_distinct(col("msisdn")).as("unique_subscribers"),
+      
+       // 2. Conditional Counts
+       // We count '1' only when the condition is met.
+       count(when(col("session_end_reason") === "NORMAL", 1)).as("total_active_sessions"),
+       count(when(col("session_end_reason") === "NETWORK_ERROR", 1)).as("total_network_error"),
+       count(when(col("session_end_reason") === "USER_TERMINATED", 1)).as("total_user_terminated"),
+       count(when(col("session_end_reason") === "QUOTA_EXCEEDED", 1)).as("total_quota_exceeded"),
 
       // 3. Sums (using coalesce to treat nulls as 0 to avoid breaking the sum)
       sum(coalesce(col("bytes_uploaded"), lit(0))).as("total_bytes_uploaded"),

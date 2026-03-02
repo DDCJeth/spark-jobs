@@ -73,6 +73,10 @@ object VoiceGoldStream {
         avg(when($"call_status" === "SUCCESS", $"duration_seconds")).as("average_call_duration_success"),
         sum(when($"call_status" === "SUCCESS", 1).otherwise(0)).as("total_call_success"),
         sum(when($"call_status" === "FAILED", 1).otherwise(0)).as("total_call_failed"),
+        approx_count_distinct($"caller_msisdn").as("unique_calling_subscribers"),
+        approx_count_distinct($"callee_msisdn").as("unique_receiving_subscribers"),
+        sum(when($"termination_reason" === "NO_ANSWER", 1).otherwise(0)).as("total_no_answer"),
+        sum(when($"termination_reason" === "USER_TERMINATED", 1).otherwise(0)).as("total_user_terminated"),
         sum($"charging_amount").as("total_revenue"),
         sum($"duration_minutes").as("total_duration_of_minutes")
       )
@@ -101,6 +105,10 @@ object VoiceGoldStream {
         sum($"duration_seconds").as("total_call_duration"),
         sum(when($"call_status" === "SUCCESS", 1).otherwise(0)).as("total_call_success"),
         sum(when($"call_status" === "FAILED", 1).otherwise(0)).as("total_call_failed"),
+        approx_count_distinct($"caller_msisdn").as("unique_calling_subscribers"),
+        approx_count_distinct($"callee_msisdn").as("unique_receiving_subscribers"),
+        sum(when($"termination_reason" === "NO_ANSWER", 1).otherwise(0)).as("total_no_answer"),
+        sum(when($"termination_reason" === "USER_TERMINATED", 1).otherwise(0)).as("total_user_terminated"),        
         sum($"charging_amount").as("total_revenue")
       )
 

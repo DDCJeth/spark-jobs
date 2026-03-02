@@ -67,6 +67,7 @@ object SmsGoldStream {
         count($"sms_id").as("total_number_sms"),
         sum(when($"delivery_status" === "DELIVERED", 1).otherwise(0)).as("total_delivered_sms"),
         sum(when($"delivery_status" === "FAILED", 1).otherwise(0)).as("total_failed_sms"),
+        sum(when($"delivery_status" === "PENDING", 1).otherwise(0)).as("total_pending_sms"),
         sum($"charging_amount").as("total_revenue"),
         approx_count_distinct($"sender_msisdn").as("total_subscribers_sending_sms"),
         approx_count_distinct($"receiver_msisdn").as("total_subscribers_receiving_sms")
@@ -95,6 +96,7 @@ object SmsGoldStream {
         count($"sms_id").as("total_number_sms"),
         sum(when($"delivery_status" === "DELIVERED", 1).otherwise(0)).as("total_delivered_sms"),
         sum(when($"delivery_status" === "FAILED", 1).otherwise(0)).as("total_failed_sms"),
+        sum(when($"delivery_status" === "PENDING", 1).otherwise(0)).as("total_pending_sms"),
         sum($"charging_amount").as("total_revenue"),
         approx_count_distinct($"sender_msisdn").as("total_subscribers_sending_sms"),
         approx_count_distinct($"receiver_msisdn").as("total_subscribers_receiving_sms")

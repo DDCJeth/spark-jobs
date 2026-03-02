@@ -1,6 +1,9 @@
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
+import org.apache.spark.sql.types.ArrayType
+import org.apache.spark.sql.functions.explode
+
 
 object DataSilverStream {
   def main(args: Array[String]): Unit = {
@@ -52,9 +55,13 @@ object DataSilverStream {
       .option("startingOffsets", "latest")
       .load()
 
-    // 3. Parse JSON and Flatten
+    // 3. Parse JSON Array and Flatten
     val dataDf = kafkaRawDf
-      .select(from_json($"value".cast("string"), dataSchema).as("data"))
+      // Tell from_json to expect an Array of your StructType
+      .select(from_json($"value".cast("string"), ArrayType(dataSchema)).as("data_array"))
+      // Explode the array so each object inside becomes its own row
+      .select(explode($"data_array").as("data"))
+      // Select the fields from the struct
       .select("data.*")
 
     // 4. Apply Transformations
@@ -95,7 +102,7 @@ object DataSilverStream {
       .format("kafka")
       .option("kafka.bootstrap.servers", kafkaHost) // Replace with your Kafka Broker
       .option("topic", silverTopic) // Output topic
-      .option("checkpointLocation", "/tmp/checkpoints/silver-data-cdr") // Required for fault tolerance
+      .option("checkpointLocation", checkpointLocation) // Required for fault tolerance
       .outputMode("append")
       .start()
 
