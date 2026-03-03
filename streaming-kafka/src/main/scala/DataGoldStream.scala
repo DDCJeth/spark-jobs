@@ -24,7 +24,7 @@ object DataGoldStream {
 
     // 1. Initialize Spark
     val spark = SparkSession.builder()
-      .appName("KafkaVoiceMultiKPIs")
+      .appName("KafkaDataMultiKPIs")
       .getOrCreate()
 
     import spark.implicits._
