@@ -3,6 +3,7 @@ import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.types.DataType
 import org.apache.spark.sql.SaveMode
 import org.apache.spark.sql.functions._
+import org.apache.spark.sql.types._
 import org.apache.spark.internal.Logging
 import scala.io.Source
 
@@ -179,7 +180,7 @@ object VoiceGoldTables extends Logging {
     val r = refTower.alias("r")
 
     // Perform the Left Join and Select the columns
-    val VoiceJoinTower = v.join(r, Seq("cell_id"), "left")
+    val voiceJoinTower = v.join(r, Seq("cell_id"), "left")
       .select(
         col("v.call_date").as("kpi_date"),
         col("v.call_hour").as("kpi_hour"),

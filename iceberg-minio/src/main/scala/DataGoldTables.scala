@@ -3,6 +3,7 @@ import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.types.DataType
 import org.apache.spark.sql.SaveMode
 import org.apache.spark.sql.functions._
+import org.apache.spark.sql.types._
 import org.apache.spark.internal.Logging
 import scala.io.Source
 
@@ -84,6 +85,54 @@ object DataGoldTables extends Logging {
     logInfo(s"Data successfully written to Iceberg table: $firstTargetTable")
 
 
+    // #################################################
+    // Superset table
+    val dataGlobal = dataKpis.select(
+      col("session_date").as("kpi_date"),
+      lit("data").as("service_type"),
+      col("total_sessions").as("total_transactions"),
+      col("total_active_sessions").as("total_success"),
+      
+      // Arithmetic: CAST(total_sessions - total_active_sessions AS BIGINT)
+      (col("total_sessions") - col("total_active_sessions")).cast(LongType).as("total_failed"),
+      
+      // Equivalent to: CAST(total_active_sessions AS DOUBLE) / NULLIF(total_sessions, 0) * 100
+      (col("total_active_sessions").cast(DoubleType) / 
+        when(col("total_sessions") === 0, lit(null))
+        .otherwise(col("total_sessions")) * 100).as("success_rate"),
+        
+      col("total_revenue"),
+      
+      // Casting NULLs to specific Data Types
+      lit(null).cast(LongType).as("total_duration_seconds"),
+      
+      col("average_session_duration_minutes").as("total_duration_minutes"),
+      col("average_session_duration_sec").as("avg_duration_seconds"),
+      col("total_data_volume_GB").as("total_volume_gb"),
+      col("total_bytes_uploaded"),
+      col("total_bytes_downloaded"),
+      col("average_throughput_per_session").as("avg_throughput"),
+      col("unique_subscribers"),
+      
+      lit(null).cast(LongType).as("total_no_answer"),
+      col("total_network_error"),
+      col("total_user_terminated"),
+      col("total_quota_exceeded"),
+      lit(null).cast(LongType).as("total_pending")
+    )
+
+    // Write  to Gold Table : data_global
+    logInfo(s"Writing Data global KPIs for superset")
+    dataGlobal.write
+      .mode(SaveMode.Append)
+      .saveAsTable("gold.data_global")
+    logInfo(s"Data successfully written to Iceberg table: gold.data_global")
+
+    // Superset table End
+    // #################################################
+
+
+
 
     val dataTowerKpis = df.groupBy("session_date", "session_hour", "cell_id")
       .agg(
@@ -121,6 +170,74 @@ object DataGoldTables extends Logging {
       .saveAsTable(secondTargetTable)
     
     logInfo(s"Data successfully written to Iceberg table: $secondTargetTable")
+
+    // #################################################
+    // Superset table
+    // Apply aliases to the DataFrames to mimic the SQL behavior
+    // Read Reference Tower Data
+    val refTower = spark.read.table("referentiel.cell_ref")
+
+
+    // Apply aliases to the DataFrames to mimic the SQL behavior
+    val d = dataTowerKpis.alias("d")
+    val r = refTower.alias("r")
+
+    // Perform the Left Join and Select the columns
+    val dataJoinTower = d.join(r, Seq("cell_id"), "left")
+      .select(
+        col("d.session_date").as("kpi_date"),
+        col("d.session_hour").as("kpi_hour"),
+        col("cell_id"), // Automatically resolved from the Seq("cell_id") join condition
+        lit("data").as("service_type"),
+        
+        // Casting explicit metrics to LongType (BIGINT)
+        col("d.total_sessions").cast(LongType).as("total_transactions"),
+        col("d.total_active_sessions").cast(LongType).as("total_success"),
+        
+        // Arithmetic: CAST(total_sessions AS BIGINT) - CAST(total_active_sessions AS BIGINT)
+        (col("d.total_sessions").cast(LongType) - col("d.total_active_sessions").cast(LongType)).as("total_failed"),
+        
+        // Equivalent to: CAST(total_active_sessions AS DOUBLE) / NULLIF(CAST(total_sessions AS DOUBLE), 0) * 100
+        (col("d.total_active_sessions").cast(DoubleType) / 
+          when(col("d.total_sessions") === 0, lit(null))
+          .otherwise(col("d.total_sessions").cast(DoubleType)) * 100).as("success_rate"),
+          
+        // Casting remaining data columns
+        col("d.total_revenue").cast(DoubleType).as("total_revenue"),
+        lit(null).cast(LongType).as("total_duration_seconds"), // Placeholder for data
+        
+        col("d.total_data_volume_gb").cast(DoubleType).as("total_volume_gb"),
+        col("d.total_bytes_uploaded").cast(LongType).as("total_bytes_uploaded"),
+        col("d.total_bytes_downloaded").cast(LongType).as("total_bytes_downloaded"),
+        col("d.unique_subscribers").cast(LongType).as("unique_subscribers"),
+        
+        // Injecting NULLs with appropriate types for voice-specific metrics
+        lit(null).cast(LongType).as("total_no_answer"),
+        
+        col("d.total_network_error").cast(LongType).as("total_network_error"),
+        col("d.total_user_terminated").cast(LongType).as("total_user_terminated"),
+        col("d.total_quota_exceeded").cast(LongType).as("total_quota_exceeded"),
+        lit(null).cast(LongType).as("total_pending"),
+        
+        // Selecting reference columns from 'r'
+        col("r.region"),
+        col("r.province"),
+        col("r.latitude"),
+        col("r.longitude"),
+        col("r.technology"),
+        col("r.capacity_erlang")
+      )
+
+    // Write  to Gold Table : data_tower
+    logInfo(s"Writing Voice global KPIs for superset")
+    dataJoinTower.write
+      .mode(SaveMode.Append)
+      .saveAsTable("gold.data_tower")
+    logInfo(s"Data successfully written to Iceberg table: gold.data_tower")
+
+    // Superset table End
+    // #################################################
+
 
     logInfo("Stopping spark session")
     spark.stop()
