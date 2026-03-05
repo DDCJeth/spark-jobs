@@ -44,7 +44,7 @@ object DataGoldTables extends Logging {
         count("session_id").as("total_sessions"),
         count(when(col("session_end_reason") === "NORMAL", col("session_id"))).as("total_active_sessions"),
 
-        // count of unique caller_msisdn
+        // count of unique msisdn
         countDistinct("msisdn").as("unique_subscribers"),
 
         // (g['session_end_reason'] == 'NETWORK_ERROR').sum()
