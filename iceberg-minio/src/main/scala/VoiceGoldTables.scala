@@ -81,6 +81,49 @@ object VoiceGoldTables extends Logging {
       .saveAsTable(firstTargetTable)
     logInfo(s"Data successfully written to Iceberg table: $firstTargetTable")
 
+    // #################################################
+    // Superset table
+    val voiceGlobal = voiceKpis.select(
+    col("call_date").as("kpi_date"),
+    lit("voice").as("service_type"),
+    col("total_number_calls").as("total_transactions"),
+    col("total_call_success").as("total_success"),
+    col("total_call_failed").as("total_failed"),
+    
+    // Equivalent to: CAST(total_call_success AS DOUBLE) / NULLIF(total_number_calls, 0) * 100
+    (col("total_call_success").cast(DoubleType) / 
+      when(col("total_number_calls") === 0, lit(null))
+      .otherwise(col("total_number_calls")) * 100).as("success_rate"),
+      
+    col("total_revenue"),
+    col("total_call_duration").as("total_duration_seconds"),
+    col("total_duration_of_minutes").as("total_duration_minutes"),
+    col("average_call_duration").as("avg_duration_seconds"),
+    
+    // Casting NULLs to specific Data Types
+    lit(null).cast(DoubleType).as("total_volume_gb"),
+    lit(null).cast(LongType).as("total_bytes_uploaded"),
+    lit(null).cast(LongType).as("total_bytes_downloaded"),
+    lit(null).cast(DoubleType).as("avg_throughput"),
+    
+    col("unique_calling_subscribers").as("unique_subscribers"),
+    col("total_no_answer"),
+    
+    lit(null).cast(LongType).as("total_network_error"),
+    col("total_user_terminated"),
+    lit(null).cast(LongType).as("total_quota_exceeded"),
+    lit(null).cast(LongType).as("total_pending")
+    )
+
+    // Write  to Gold Table : voice_global
+    logInfo(s"Writing Voice global KPIs for superset")
+    voiceGlobal.write
+      .mode(SaveMode.Append)
+      .saveAsTable("gold.voice_global")
+    logInfo(s"Data successfully written to Iceberg table: gold.voice_global")
+
+    // Superset table End
+    // #################################################
 
     // Assuming 'voiceDf' is your DataFrame
     val voiceTowerKpis = voicedf
@@ -125,6 +168,71 @@ object VoiceGoldTables extends Logging {
       .mode(SaveMode.Append)
       .saveAsTable(secondTargetTable)
     logInfo(s"Data successfully written to Iceberg table: $secondTargetTable")
+
+    // Read Reference Tower Data
+    val refTower = spark.read.table("referentiel.cell_ref")
+
+    // #################################################
+    // Superset table
+    // Apply aliases to the DataFrames to mimic the SQL behavior
+    val v = voiceTowerKpis.alias("v")
+    val r = refTower.alias("r")
+
+    // Perform the Left Join and Select the columns
+    val VoiceJoinTower = v.join(r, Seq("cell_id"), "left")
+      .select(
+        col("v.call_date").as("kpi_date"),
+        col("v.call_hour").as("kpi_hour"),
+        col("cell_id"), // Automatically resolved from the Seq("cell_id") join condition
+        lit("voice").as("service_type"),
+        
+        // Casting to LongType (Equivalent to BIGINT)
+        col("v.total_number_calls").cast(LongType).as("total_transactions"),
+        col("v.total_call_success").cast(LongType).as("total_success"),
+        col("v.total_call_failed").cast(LongType).as("total_failed"),
+        
+        // Equivalent to: CAST(total_call_success AS DOUBLE) / NULLIF(CAST(total_number_calls AS DOUBLE), 0) * 100
+        (col("v.total_call_success").cast(DoubleType) / 
+          when(col("v.total_number_calls") === 0, lit(null))
+          .otherwise(col("v.total_number_calls").cast(DoubleType)) * 100).as("success_rate"),
+          
+        // Casting remaining voice columns
+        col("v.total_revenue").cast(DoubleType).as("total_revenue"),
+        col("v.total_call_duration").cast(LongType).as("total_duration_seconds"),
+        
+        // Injecting NULLs with appropriate types
+        lit(null).cast(DoubleType).as("total_volume_gb"),
+        lit(null).cast(LongType).as("total_bytes_uploaded"),
+        lit(null).cast(LongType).as("total_bytes_downloaded"),
+        
+        col("v.unique_calling_subscribers").cast(LongType).as("unique_subscribers"),
+        col("v.total_no_answer").cast(LongType).as("total_no_answer"),
+        
+        lit(null).cast(LongType).as("total_network_error"),
+        col("v.total_user_terminated").cast(LongType).as("total_user_terminated"),
+        lit(null).cast(LongType).as("total_quota_exceeded"),
+        lit(null).cast(LongType).as("total_pending"),
+        
+        // Selecting reference columns from 'r'
+        col("r.region"),
+        col("r.province"),
+        col("r.latitude"),
+        col("r.longitude"),
+        col("r.technology"),
+        col("r.capacity_erlang")
+      )
+
+    // Write  to Gold Table : voice_tower
+    logInfo(s"Writing Voice global KPIs for superset")
+    voiceJoinTower.write
+      .mode(SaveMode.Append)
+      .saveAsTable("gold.voice_tower")
+    logInfo(s"Data successfully written to Iceberg table: gold.voice_tower")
+
+    // Superset table End
+    // #################################################
+
+
 
     logInfo("Stopping spark session")
     spark.stop()
